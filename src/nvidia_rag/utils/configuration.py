@@ -665,6 +665,12 @@ class SummarizerConfig(ConfigWizard):
         default=1.0,
         help_txt="Top-p sampling for the summarizer model (nucleus sampling)",
     )
+    max_parallelization: int = configfield(
+        "max_parallelization",
+        env_name="SUMMARY_MAX_PARALLELIZATION",
+        default=20,
+        help_txt="Maximum concurrent summaries across entire system (coordinated via Redis)",
+    )
 
 
 @configclass
