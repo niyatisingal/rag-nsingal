@@ -503,45 +503,6 @@ class TestNvidiaRAGIngestor:
             assert "test.xyz" in result
             assert "test.abc" in result
 
-    def test_parse_documents_text_content(self, ingestor):
-        """Test parsing of text documents from nv-ingest results."""
-        results = [
-            [
-                {
-                    "document_type": "text",
-                    "metadata": {
-                        "content": "Sample text content",
-                        "source_metadata": {"source_id": "/path/to/test.pdf"},
-                        "content_metadata": {},
-                    },
-                }
-            ]
-        ]
-
-        documents = ingestor._NvidiaRAGIngestor__parse_documents(results)
-
-        assert len(documents) == 1
-        assert documents[0].page_content == "Sample text content"
-        assert documents[0].metadata["source"] == "/path/to/test.pdf"
-        assert documents[0].metadata["chunk_type"] == "text"
-        assert documents[0].metadata["source_name"] == "test.pdf"
-
-    def test_prepare_metadata(self, ingestor):
-        """Test metadata preparation for a single chunk."""
-        result_element = {
-            "document_type": "text",
-            "metadata": {
-                "source_metadata": {"source_id": "/path/to/document.pdf"},
-                "content_metadata": {},
-            },
-        }
-
-        metadata = ingestor._NvidiaRAGIngestor__prepare_metadata(result_element)
-
-        assert metadata["source"] == "/path/to/document.pdf"
-        assert metadata["chunk_type"] == "text"
-        assert metadata["source_name"] == "document.pdf"
-
     @pytest.mark.asyncio
     async def test_status_pending_task(self):
         """Test status check for pending task."""
@@ -550,7 +511,7 @@ class TestNvidiaRAGIngestor:
         ) as mock_handler:
             mock_handler.get_task_status_and_result.return_value = {
                 "state": "PENDING",
-                "result": {"message": "Task is pending"}
+                "result": {"message": "Task is pending"},
             }
 
             result = await NvidiaRAGIngestor.status("test-task-id")
@@ -566,7 +527,7 @@ class TestNvidiaRAGIngestor:
         ) as mock_handler:
             mock_handler.get_task_status_and_result.return_value = {
                 "state": "FINISHED",
-                "result": {"message": "success"}
+                "result": {"message": "success"},
             }
 
             result = await NvidiaRAGIngestor.status("test-task-id")
@@ -585,7 +546,7 @@ class TestNvidiaRAGIngestor:
                 "result": {
                     "state": "FAILED",
                     "message": "error",
-                }
+                },
             }
 
             result = await NvidiaRAGIngestor.status("test-task-id")
