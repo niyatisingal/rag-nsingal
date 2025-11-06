@@ -58,6 +58,7 @@ def get_nv_ingest_ingestor(
     split_options=None,
     vdb_op: VDBRag = None,
     remove_extract_method: bool = False,
+    extract_override: dict = None,
 ):
     """
     Prepare NV-Ingest ingestor instance based on nv-ingest configuration
@@ -66,6 +67,11 @@ def get_nv_ingest_ingestor(
         nv_ingest_client_instance: NvIngestClient instance
         filepaths: List of file paths to ingest
         split_options: Options for splitting documents
+        vdb_op: VDB operator instance
+        remove_extract_method: Whether to remove extract_method from kwargs
+        extract_override: Optional dict to override extraction parameters.
+                         If provided, these settings override CONFIG values.
+                         Useful for text-only extraction for shallow summaries.
 
     Returns:
         - ingestor: Ingestor - NV-Ingest ingestor instance with configured tasks
@@ -83,24 +89,31 @@ def get_nv_ingest_ingestor(
     table_output_format = (
         "markdown" if CONFIG.nv_ingest.extract_tables else "pseudo_markdown"
     )
-    # Create kwargs for extract method
-    extract_kwargs = {
-        "extract_text": CONFIG.nv_ingest.extract_text,
-        "extract_infographics": CONFIG.nv_ingest.extract_infographics,
-        "extract_tables": CONFIG.nv_ingest.extract_tables,
-        "extract_charts": CONFIG.nv_ingest.extract_charts,
-        "extract_images": CONFIG.nv_ingest.extract_images,
-        "extract_method": CONFIG.nv_ingest.pdf_extract_method,
-        "text_depth": CONFIG.nv_ingest.text_depth,
-        "table_output_format": table_output_format,
-        "extract_audio_params": {"segment_audio": CONFIG.nv_ingest.segment_audio},
-        "extract_page_as_image": CONFIG.nv_ingest.extract_page_as_image,
-    }
-    if remove_extract_method or CONFIG.nv_ingest.pdf_extract_method in ["None", "none"]:
-        extract_kwargs.pop("extract_method")
+
+    # Use extract_override if provided, otherwise use CONFIG values
+    if extract_override:
+        extract_kwargs = extract_override.copy()
+        logger.debug("Using extraction override: %s", extract_override)
     else:
+        # Create kwargs for extract method
+        extract_kwargs = {
+            "extract_text": CONFIG.nv_ingest.extract_text,
+            "extract_infographics": CONFIG.nv_ingest.extract_infographics,
+            "extract_tables": CONFIG.nv_ingest.extract_tables,
+            "extract_charts": CONFIG.nv_ingest.extract_charts,
+            "extract_images": CONFIG.nv_ingest.extract_images,
+            "extract_method": CONFIG.nv_ingest.pdf_extract_method,
+            "text_depth": CONFIG.nv_ingest.text_depth,
+            "table_output_format": table_output_format,
+            "extract_audio_params": {"segment_audio": CONFIG.nv_ingest.segment_audio},
+            "extract_page_as_image": CONFIG.nv_ingest.extract_page_as_image,
+        }
+
+    if remove_extract_method or CONFIG.nv_ingest.pdf_extract_method in ["None", "none"]:
+        extract_kwargs.pop("extract_method", None)
+    elif "extract_method" in extract_kwargs:
         logger.info(
-            f"Extract method used for ingestion: {CONFIG.nv_ingest.pdf_extract_method}"
+            f"Extract method used for ingestion: {extract_kwargs.get('extract_method', CONFIG.nv_ingest.pdf_extract_method)}"
         )
     ingestor = ingestor.extract(**extract_kwargs)
 
@@ -135,8 +148,8 @@ def get_nv_ingest_ingestor(
             model_name=CONFIG.nv_ingest.caption_model_name,
         )
 
-    # Add Embedding task
-    if ENABLE_NV_INGEST_VDB_UPLOAD:
+    # Add Embedding task (only when VDB operations are enabled)
+    if ENABLE_NV_INGEST_VDB_UPLOAD and vdb_op is not None:
         embedding_url = sanitize_nim_url(
             CONFIG.embeddings.server_url, CONFIG.embeddings.model_name, "embedding"
         )
@@ -164,8 +177,8 @@ def get_nv_ingest_ingestor(
                 dimensions=CONFIG.embeddings.dimensions,
             )
 
-    # Add save to disk task
-    if CONFIG.nv_ingest.save_to_disk:
+    # Add save to disk task (only when VDB operations are enabled)
+    if CONFIG.nv_ingest.save_to_disk and vdb_op is not None:
         output_directory = os.path.join(
             os.getenv("INGESTOR_SERVER_DATA_DIR", "/data/"),
             "nv-ingest-results",
@@ -177,8 +190,8 @@ def get_nv_ingest_ingestor(
             cleanup=not CONFIG.nv_ingest.save_to_disk,
         )
 
-    # Add Vector-DB upload task
-    if ENABLE_NV_INGEST_VDB_UPLOAD:
+    # Add Vector-DB upload task (only when VDB operations are enabled)
+    if ENABLE_NV_INGEST_VDB_UPLOAD and vdb_op is not None:
         ingestor = ingestor.vdb_upload(
             vdb_op=vdb_op,
             purge_results_after_upload=not CONFIG.nv_ingest.save_to_disk,
