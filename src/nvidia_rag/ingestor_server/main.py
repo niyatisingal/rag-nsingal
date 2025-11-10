@@ -1744,10 +1744,11 @@ class NvidiaRAGIngestor:
 
         Extracts only text content without multimodal elements (tables, images, charts).
         Does not generate embeddings or upload to VDB.
+        Does not perform text splitting - summarization will handle its own splitting.
 
         Args:
             filepaths: List of file paths to extract
-            split_options: Options for splitting documents
+            split_options: Options for splitting documents (unused in shallow extraction)
             batch_number: Batch number for logging
 
         Returns:
@@ -1770,7 +1771,7 @@ class NvidiaRAGIngestor:
             nv_ingest_ingestor = get_nv_ingest_ingestor(
                 nv_ingest_client_instance=NV_INGEST_CLIENT_INSTANCE,
                 filepaths=filepaths,
-                split_options=split_options,
+                split_options=None,  # Skip splitting for shallow extraction
                 vdb_op=None,
                 extract_override=extract_override,
             )

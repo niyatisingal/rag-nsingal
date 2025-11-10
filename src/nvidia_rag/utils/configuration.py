@@ -644,14 +644,14 @@ class SummarizerConfig(ConfigWizard):
     max_chunk_length: int = configfield(
         "max_chunk_length",
         env_name="SUMMARY_LLM_MAX_CHUNK_LENGTH",
-        default=50000,
-        help_txt="Maximum chunk size in characters for the summarizer model",
+        default=9000,
+        help_txt="Maximum chunk size in tokens for the summarizer model",
     )
     chunk_overlap: int = configfield(
         "chunk_overlap",
         env_name="SUMMARY_CHUNK_OVERLAP",
-        default=200,
-        help_txt="Overlap between chunks for iterative summarization (in characters)",
+        default=400,
+        help_txt="Overlap between chunks for iterative summarization (in tokens)",
     )
     temperature: float = configfield(
         "temperature",
